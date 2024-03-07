@@ -71,26 +71,29 @@ def extract_old_data_and_load_gui(app):
             messagebox.showerror("Error", str(e))
 
 # Function to extract new data and display extracted files for selection
-# Function to extract new data and display extracted files for selection
-def extract_new_data_and_load_gui(app):
-    input_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
-    if input_file_path:
-        try:
-            # Extract new data
-            extracted_files_folder = "temp_extracted_new_data"  # Temporary folder path
-            
-            # Create the output directory if it doesn't exist
-            os.makedirs(extracted_files_folder, exist_ok=True)
-            
-            filter_and_store_facilities(input_file_path, extracted_files_folder)
-            
-            # Display extracted files for selection
-            selected_file = select_file_from_folder(extracted_files_folder)
-            if selected_file:
-                app.new_file_path = selected_file
-                app.new_file_label.config(text=os.path.basename(selected_file))
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+
+def filter_and_store_facilities(input_file, output_folder):
+    # Read the Excel file
+    df = pd.read_excel(input_file)
+
+    # Filter data for Centennial, Dickson, Veterans', and Victoria Building
+    victoria_data = df[df['Facility Name'].isin(['Centennial Building', 'Dickson Building', "Veterens' Memorial Building", 'Victoria Building'])]
+
+    # Create the output folder
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Create an Excel writer object for Victoria Building
+    output_file_victoria = os.path.join(output_folder, "Victoria_Building.xlsx")
+    with pd.ExcelWriter(output_file_victoria, engine='openpyxl') as writer_victoria:
+        # Store data of Centennial, Dickson, Veterans', and Victoria Building in the same worksheet
+        victoria_data.to_excel(writer_victoria, sheet_name='Victoria Building', index=False)
+
+    # Store data for other facilities in separate Excel files
+    other_facilities_data = df[~df['Facility Name'].isin(['Centennial Building', 'Dickson Building', "Veterens' Memorial Building", 'Victoria Building'])]
+    for facility_name, data in other_facilities_data.groupby('Facility Name'):
+        output_file = os.path.join(output_folder, f"{facility_name}.xlsx")
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            data.to_excel(writer, index=False)
 
 
 # Function to extract a specific worksheet from an Excel file
@@ -112,20 +115,54 @@ def save_worksheet_as_excel(input_file, sheet_name, output_file):
     # Save the new workbook
     new_wb.save(output_file)
 
+
+# Function to extract new data and display extracted files for selection
+def extract_new_data_and_load_gui(app):
+    input_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+    if input_file_path:
+        try:
+            # Extract new data
+            extracted_files_folder = "temp_extracted_new_data"  # Temporary folder path
+            
+            # Create the output directory if it doesn't exist
+            os.makedirs(extracted_files_folder, exist_ok=True)
+            
+            filter_and_store_facilities(input_file_path, extracted_files_folder)
+            
+            # Display extracted files for selection
+            selected_file = select_file_from_folder(extracted_files_folder)
+            if selected_file:
+                app.new_file_path = selected_file
+                app.new_file_label.config(text=os.path.basename(selected_file))
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 # Function to filter and store facilities into separate Excel files
 def filter_and_store_facilities(input_file, output_folder):
     # Read the Excel file
     df = pd.read_excel(input_file)
 
-    # Group data by 'Facility Name'
-    grouped = df.groupby('Facility Name')
+    # Filter data for Centennial, Dickson, Veterans', and Victoria Building
+    victoria_data = df[df['Facility Name'].isin(['Centennial Building', 'Dickson Building', "Veterans' Memorial Building", 'Victoria Building'])]
 
-    # Iterate over groups and store each group in a separate Excel file
-    for facility_name, data in grouped:
-        # Create an Excel writer object for this facility
+    # Filter data for other facilities
+    other_facilities_data = df[~df['Facility Name'].isin(['Centennial Building', 'Dickson Building', "Veterans' Memorial Building", 'Victoria Building'])]
+
+    # Create the output folder
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Create an Excel writer object for Victoria Building
+    output_file_victoria = os.path.join(output_folder, "Victoria_Building.xlsx")
+    with pd.ExcelWriter(output_file_victoria, engine='openpyxl') as writer_victoria:
+        # Store data of Centennial, Dickson, Veterans', and Victoria Building in the same worksheet
+        victoria_data.to_excel(writer_victoria, index=False)
+
+    # Store data for other facilities in separate Excel files
+    for facility_name, data in other_facilities_data.groupby('Facility Name'):
         output_file = os.path.join(output_folder, f"{facility_name}.xlsx")
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             data.to_excel(writer, index=False)
+
+
 
 # Function to display extracted files for selection
 def select_file_from_folder(folder_path):
