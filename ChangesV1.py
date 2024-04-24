@@ -8,6 +8,22 @@ from openpyxl.styles import PatternFill
 import pandas as pd
 import os
 
+# Mapping for renaming extracted files
+file_name_mapping_old = {
+    "Bayer's Lake": "Bayers",
+    "Cobequid": "Cobequid",
+    "Dartmouth": "Dartmouth",
+    "Halifax Infirmary": "Halifax",
+    "Victoria General": "Victoria"
+}
+file_name_mapping_new = {
+    "Bayer'S Lake Community Outpatient Center": "Bayers",
+    "Cobequid Community Health Centre": "Cobequid",
+    "Dartmouth General Hospital": "DG",
+    "Halifax Infirmary Hospital": "HI",
+    "Victoria General": "VG"
+}
+
 # Function to load data from Excel file
 def load_data(file_path):
     workbook = openpyxl.load_workbook(file_path)
@@ -71,16 +87,18 @@ def extract_old_data_and_load_gui(app):
             for filename in os.listdir(input_folder_path):
                 if filename.endswith(".xlsx"):
                     input_file_path = os.path.join(input_folder_path, filename)
-                    extracted_file_path = os.path.join(extracted_files_folder, f"extracted_{filename}")
+                    
+                    # Extract facility name from the filename
+                    for facility_name, new_name in file_name_mapping_old.items():
+                        if facility_name.lower() in filename.lower():
+                            extracted_file_path = os.path.join(extracted_files_folder, f"extracted_{new_name}.xlsx")
 
-                    # Extract old data from the current file
-                    save_worksheet_as_excel(input_file_path, "All Facility Data", extracted_file_path)
+                            # Extract old data from the current file
+                            save_worksheet_as_excel(input_file_path, "All Facility Data", extracted_file_path)
+                            break  # Stop searching once a match is found
 
-
-            
         except Exception as e:
             messagebox.showerror("Error", str(e))
-
 
 # Function to extract new data and display extracted files for selection
 
@@ -95,7 +113,7 @@ def filter_and_store_facilities(input_file, output_folder):
     os.makedirs(output_folder, exist_ok=True)
 
     # Create an Excel writer object for Victoria Building
-    output_file_victoria = os.path.join(output_folder, "Victoria_Building.xlsx")
+    output_file_victoria = os.path.join(output_folder, "Victoria General.xlsx")
     with pd.ExcelWriter(output_file_victoria, engine='openpyxl') as writer_victoria:
         # Store data of Centennial, Dickson, Veterans', and Victoria Building in the same worksheet
         victoria_data.to_excel(writer_victoria, sheet_name='Victoria Building', index=False)
@@ -128,7 +146,6 @@ def save_worksheet_as_excel(input_file, sheet_name, output_file):
     new_wb.save(output_file)
 
 
-# Function to extract new data and display extracted files for selection
 def extract_new_data_and_load_gui(app):
     input_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
     if input_file_path:
@@ -147,9 +164,19 @@ def extract_new_data_and_load_gui(app):
             selected_file = select_file_from_folder(extracted_files_folder)
             if selected_file:
                 app.new_file_path = selected_file
-                app.new_file_label.config(text=os.path.basename(selected_file))
+
+                # Get the base filename without extension
+                base_filename = os.path.splitext(os.path.basename(selected_file))[0]
+
+                # Iterate over the mapping to find the corresponding display name
+                for facility_name, display_name in file_name_mapping_new.items():
+                    if display_name in base_filename:
+                        app.new_file_label.config(text=f"{facility_name}.xlsx")
+                        break  # Stop after finding the matching display name
+        
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
 
 # Function to filter and store facilities into separate Excel files
 def filter_and_store_facilities(input_file, output_folder):
@@ -166,7 +193,7 @@ def filter_and_store_facilities(input_file, output_folder):
     os.makedirs(output_folder, exist_ok=True)
 
     # Create an Excel writer object for Victoria Building
-    output_file_victoria = os.path.join(output_folder, "Victoria_Building.xlsx")
+    output_file_victoria = os.path.join(output_folder, "Victoria General.xlsx")
     with pd.ExcelWriter(output_file_victoria, engine='openpyxl') as writer_victoria:
         # Store data of Centennial, Dickson, Veterans', and Victoria Building in the same worksheet
         victoria_data.to_excel(writer_victoria, index=False)
@@ -235,6 +262,41 @@ class Application(tk.Tk):
         
         self.compare_button.configure(bg="green")  # Set initial color to green
         
+         # Create labels and buttons for selecting folders
+        self.label3 = tk.Label(self, text="Select Old Folder:")
+        self.label3.grid(row=5, column=0, padx=10, pady=5)
+        
+        self.old_folder_label = tk.Label(self, text="")
+        self.old_folder_label.grid(row=5, column=1, padx=10, pady=5, sticky="w")
+        
+        self.old_folder_button = tk.Button(self, text="Browse", command=self.select_old_folder)
+        self.old_folder_button.grid(row=5, column=2, padx=10, pady=5)
+
+        self.label4 = tk.Label(self, text="Select New Folder:")
+        self.label4.grid(row=6, column=0, padx=10, pady=5)
+        
+        self.new_folder_label = tk.Label(self, text="")
+        self.new_folder_label.grid(row=6, column=1, padx=10, pady=5, sticky="w")
+        
+        self.new_folder_button = tk.Button(self, text="Browse", command=self.select_new_folder)
+        self.new_folder_button.grid(row=6, column=2, padx=10, pady=5)
+
+        # Create button for comparing all files
+        self.compare_all_button = tk.Button(self, text="Compare All", command=self.compare_all_files)
+        self.compare_all_button.grid(row=7, column=0, columnspan=3, padx=10, pady=5)
+
+
+        
+    def select_old_folder(self):
+        self.old_folder_path = filedialog.askdirectory()
+        if self.old_folder_path:
+            self.old_folder_label.config(text=self.old_folder_path)
+        
+    def select_new_folder(self):
+        self.new_folder_path = filedialog.askdirectory()
+        if self.new_folder_path:
+            self.new_folder_label.config(text=self.new_folder_path)
+
     def select_old_file(self):
         self.old_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
         self.old_file_label.config(text=os.path.basename(self.old_file_path))
@@ -279,7 +341,47 @@ class Application(tk.Tk):
         self.compare_button.config(text="Compare", bg="green")
 
 
+    def compare_all_files(self):
+        if not self.old_folder_path or not self.new_folder_path:
+            messagebox.showerror("Error", "Please select both old and new folders.")
+            return
         
+        # Create the 'RESULT ALL' folder if it does not exist in the script's root directory
+        result_folder_path = os.path.join(os.path.dirname(__file__), "RESULT ALL")
+        os.makedirs(result_folder_path, exist_ok=True)
+        
+        # Mapping of extracted names to full names
+        file_mapping = {
+            "Bayers": "Bayer'S Lake Community Outpatient Center",
+            "Cobequid": "Cobequid Community Health Centre",
+            "Dartmouth": "Dartmouth General Hospital",
+            "Halifax": "Halifax Infirmary Hospital",
+            "Victoria": "Victoria General"
+        }
+        
+        # Iterate over the file mapping and compare files
+        for extracted_name, full_name in file_mapping.items():
+            old_file_path = os.path.join(self.old_folder_path, f"extracted_{extracted_name}.xlsx")
+            new_file_path = os.path.join(self.new_folder_path, f"{full_name}.xlsx")
+            result_file_name = f"{extracted_name}_Res.xlsx"
+            result_file_path = os.path.join(result_folder_path, result_file_name)
+            
+            try:
+                old_data = load_data(old_file_path)
+                new_data = load_data(new_file_path)
+                
+                old_base_name = f"extracted_{extracted_name}"
+                
+                # Perform comparison using the same logic as individual file comparison
+                new_records, removed_records = find_changes(old_data, new_data)
+                highlight_changes(new_records, removed_records, old_data, new_data, result_file_path)
+                
+                messagebox.showinfo("Success", f"Comparison completed for {old_base_name} and {full_name}.")
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+
+            
 if __name__ == "__main__":
     app = Application()
     app.mainloop()
