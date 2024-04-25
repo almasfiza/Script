@@ -216,18 +216,18 @@ class Application(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Excel Comparator")
-        self.geometry("400x300")
+        self.geometry("500x400")  # Adjusted window size for better layout
         
         # Initialize file paths
         self.old_file_path = ""
         self.new_file_path = ""
         
-        # Create labels
+        # Create labels for file selection
         self.label1 = tk.Label(self, text="Select Old File:")
-        self.label1.grid(row=0, column=0, padx=10, pady=5)
+        self.label1.grid(row=0, column=0, padx=10, pady=5, sticky="w")
         
         self.label2 = tk.Label(self, text="Select New File:")
-        self.label2.grid(row=1, column=0, padx=10, pady=5)
+        self.label2.grid(row=1, column=0, padx=10, pady=5, sticky="w")
         
         # Create labels to display selected file names
         self.old_file_label = tk.Label(self, text="")
@@ -236,55 +236,68 @@ class Application(tk.Tk):
         self.new_file_label = tk.Label(self, text="")
         self.new_file_label.grid(row=1, column=1, padx=10, pady=5, sticky="w")
         
-        # Create buttons
+        # Create buttons for file selection
         self.old_file_button = tk.Button(self, text="Browse", command=self.select_old_file)
         self.old_file_button.grid(row=0, column=2, padx=10, pady=5)
 
-        self.old_file_button.configure(bg="green")  # Set initial color to green
-        
         self.new_file_button = tk.Button(self, text="Browse", command=self.select_new_file)
         self.new_file_button.grid(row=1, column=2, padx=10, pady=5)
 
-        self.new_file_button.configure(bg="green")  # Set initial color to green
+        self.compare_button = tk.Button(self, text="Compare", command=self.compare_files)
+        self.compare_button.grid(row=2, column=0, columnspan=3, padx=10, pady=5)
 
+        # Create buttons for data extraction
         self.extract_old_data_button = tk.Button(self, text="Extract Old Data", command=self.extract_old_data)
-        self.extract_old_data_button.grid(row=2, column=0, columnspan=3, padx=10, pady=5)
-
+        self.extract_old_data_button.grid(row=3, column=0, columnspan=3, padx=10, pady=5)
         self.extract_old_data_button.configure(bg="green")  # Set initial color to green
         
+        self.extract_old_data_single_button = tk.Button(self, text="Extract Old Data (Single File)", command=self.extract_old_data_single_file)
+        self.extract_old_data_single_button.grid(row=4, column=0, columnspan=3, padx=10, pady=5)
+        self.extract_old_data_single_button.configure(bg="green")  # Set initial color to green
+        
         self.extract_new_data_button = tk.Button(self, text="Extract New Data", command=self.extract_new_data)
-        self.extract_new_data_button.grid(row=3, column=0, columnspan=3, padx=10, pady=5)
-
+        self.extract_new_data_button.grid(row=5, column=0, columnspan=3, padx=10, pady=5)
         self.extract_new_data_button.configure(bg="green")  # Set initial color to green
-
-        self.compare_button = tk.Button(self, text="Compare", command=self.compare_files)
-        self.compare_button.grid(row=4, column=0, columnspan=3, padx=10, pady=5)
         
-        self.compare_button.configure(bg="green")  # Set initial color to green
-        
-         # Create labels and buttons for selecting folders
+        # Create labels and buttons for selecting folders
         self.label3 = tk.Label(self, text="Select Old Folder:")
-        self.label3.grid(row=5, column=0, padx=10, pady=5)
+        self.label3.grid(row=6, column=0, padx=10, pady=5, sticky="w")
         
         self.old_folder_label = tk.Label(self, text="")
-        self.old_folder_label.grid(row=5, column=1, padx=10, pady=5, sticky="w")
+        self.old_folder_label.grid(row=6, column=1, padx=10, pady=5, sticky="w")
         
         self.old_folder_button = tk.Button(self, text="Browse", command=self.select_old_folder)
-        self.old_folder_button.grid(row=5, column=2, padx=10, pady=5)
+        self.old_folder_button.grid(row=6, column=2, padx=10, pady=5)
 
         self.label4 = tk.Label(self, text="Select New Folder:")
-        self.label4.grid(row=6, column=0, padx=10, pady=5)
+        self.label4.grid(row=7, column=0, padx=10, pady=5, sticky="w")
         
         self.new_folder_label = tk.Label(self, text="")
-        self.new_folder_label.grid(row=6, column=1, padx=10, pady=5, sticky="w")
+        self.new_folder_label.grid(row=7, column=1, padx=10, pady=5, sticky="w")
         
         self.new_folder_button = tk.Button(self, text="Browse", command=self.select_new_folder)
-        self.new_folder_button.grid(row=6, column=2, padx=10, pady=5)
+        self.new_folder_button.grid(row=7, column=2, padx=10, pady=5)
 
         # Create button for comparing all files
         self.compare_all_button = tk.Button(self, text="Compare All", command=self.compare_all_files)
-        self.compare_all_button.grid(row=7, column=0, columnspan=3, padx=10, pady=5)
+        self.compare_all_button.grid(row=9, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
+       
+
+    def extract_old_data_single_file(self):
+        input_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+        if input_file_path:
+            try:
+                # Extract old data
+                extracted_file_path = "temp_extracted_old_data.xlsx"  # Temporary file path
+                save_worksheet_as_excel(input_file_path, "All Facility Data", extracted_file_path)
+                
+                # Load extracted data into the GUI
+                self.old_file_path = extracted_file_path
+                self.old_file_label.config(text=os.path.basename(extracted_file_path))
+                
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
 
         
     def select_old_folder(self):
